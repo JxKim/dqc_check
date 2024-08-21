@@ -1,0 +1,6 @@
+# 数据检测配置成功：
+**表名**：<font color="warning">**{tbl_name}** </font>
+**检测内容**:<font color="warning">**{check_content}** </font>
+**本次检测结果**:<font color="warning">**{this_time_check_result}** </font>
+**下次检测时间为**：**{next_schedule_time}**
+>本次检测SQL为: {check_sql}

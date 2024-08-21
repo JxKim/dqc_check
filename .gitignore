@@ -1,0 +1,9 @@
+*.xml
+*.pyc
+/.idea/
+/.cache/
+/build/
+/dqc_check.egg-info/
+/dqc_check/conn_properties.py
+/dist/
+*.egg-info/

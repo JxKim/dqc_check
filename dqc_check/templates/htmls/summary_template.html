@@ -1,0 +1,377 @@
+<html>
+			<head>
+			            <meta charset="utf-8">
+			            <STYLE TYPE="text/css" MEDIA=screen>
+
+			                table.dataframe {
+			                    border-collapse: collapse;
+			                }
+			                table {
+		                     table-layout: auto;
+			                border-collapse: collapse;
+			                margin-left: auto;   /* 左边距自动 */
+			                margin-right: auto;  /* 右边距自动 */
+	                        margin-bottom: 40px;
+			                width: 80%;
+			                }
+			                p {
+			    font-family: 'Microsoft YaHei UI Light', sans-serif;
+			    font-size: 25px;
+			    text-align: center;
+			    font-weight: bold;margin-bottom: 20px;margin-top: 40px;
+	  margin-left: 20px; /* 左边距 */
+	  margin-right: 20px; /* 右边距 */
+
+			  }
+			                table.dataframe thead {
+			                    padding: 10px 10px 10px 10px;
+			                }
+			                table.dataframe tbody {
+			                    padding: 10px 10px 10px 10px;
+			                }
+			                table.dataframe tr {
+			                  vertical-align: middle;
+			                }
+			                table.dataframe th {
+			                    vertical-align: middle;
+			                    font-size: 14px;
+			                    padding: 10px 10px 10px 10px;
+			                    text-align: center;
+			                    height: 50px;
+			                    background-color: #A3D1E4;
+			                    font-weight: bolder;
+		                        width: auto;
+			                }
+			                table.dataframe td {
+			                    text-align: center;
+			                    padding: 10px 10px 10px 10px;
+			                    height: 50px;
+		                        width: auto;
+			                }
+			                body {
+			                    font-family: "Microsoft YaHei",Arial,sans-serif;
+			                }
+			               .flex-container {
+			                    display: flex;
+			                    flex-wrap: wrap;
+			                    justify-content: center;
+			               }
+			                .flex-container > div {
+			                    margin: 10px;
+			                }
+	                        tr:nth-child(even) {
+	                        background-color: #f2f2f2;
+	                        }
+
+	  /* 为第奇数行设置另一种背景色 */
+	            tr:nth-child(odd) {
+	    background-color: #ffffff;
+	  }
+			            </STYLE>
+			</head>
+
+			<body>
+			    <div>
+			      <p style="font-size: 35px">{check_date}高管会数据质量检测结果清单</p>
+			         <table border="1" class="dataframe" >
+			  <thead>
+			    <tr align="center" style="color:Black;font-family:'Microsoft YaHei',sans-serif;font-size:14px;">
+			      <th >检测目标</th>
+			      <th >状态</th>
+			      <th >类型</th>
+			      <th >影响范围</th>
+			        <th>检测项</th>
+					<th>检测编号</th>
+			    </tr>
+			  </thead>
+	  <tbody>
+
+	        <tr>
+	                                  <td width="50px">tidb_hjlc.report_db_xhdc.xhsk_ggh_kpi_report_sd</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">结果表</td>
+	                                  <td width="50px">高管会金融科技事业部，房产&汽车&场景-业绩&资方&客户&产品数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.0</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">tidb_hjlc.report_db_xhdc.ads_xh_dim_kpi_all_orgnization_dept_sd</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">结果表</td>
+	                                  <td width="50px">高管会机构合作部，业绩数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.1</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">tidb_hjlc.report_db_xhdc.ads_itfin_performance_indicators_i</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">结果表</td>
+	                                  <td width="50px">高管会金融科技事业部，场景、房产、汽车、小微等类目业绩数据</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.2</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">tidb_hjlc.ods_micro_finance.fm_contract</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小微金融-客户数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.3</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dws.dws_itfin_xd_fin_contract_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">contract_no字段唯一性检测,自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.4</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dws.dws_itfin_car_apply_entry_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，汽车金融-线上&线下-资金方&客户数据产出</td>
+	                                  <td width="50px">entry_no字段唯一性检测,表行数检测</td>
+	                                  <td width="50px">No.5</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_zzx_fin_repay_statistics_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.6</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_zzx_apply_loan_order_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，互联网金融-客户数据产出</td>
+	                                  <td width="50px">id字段唯一性检测,自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.7</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_zzx_apply_entry_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.8</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_xwjr_fin_business_repay_statistics_info_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会机构合作部，业绩数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.9</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_xhsk_biz_target_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会，业绩目标数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.10</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_xd_apply_loan_order_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，互联网金融-业绩&客户数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.11</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_xd_apply_capital_use_credit_audit_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，互联网金融-客户数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.12</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_xd_apply_capital_audit_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，互联网金融-客户数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.13</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dwd.dwd_itfin_reloan_statistics_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，互联网金融-客户数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.14</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dp_ods.o_mf_fm_contract_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会-机构合作部底表</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.15</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dp_ods.o_hyd_jsd_trace_log_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会机构合作部，业绩数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.16</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dp_ods.o_hyd_jsd_loan_order_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会机构合作部，业绩数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.17</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dm_fk.agg_xh_debit_info</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.18</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dm_fk.agg_speed_withhold_aggregation_zzx</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">contr_num字段唯一性检测,表行数检测</td>
+	                                  <td width="50px">No.19</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dm_fk.agg_speed_withhold_aggregation_xhmd</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.20</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dm_fk.agg_speed_withhold_aggregation</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">contr_num字段唯一性检测,表行数检测</td>
+	                                  <td width="50px">No.21</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dm_fk.agg_fm_debit_info</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.22</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dm_fk.agg_debit_info_rt_201702</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，小恒数科整体-业绩在贷余额数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.23</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dim.dim_public_data_dict_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，互联网金融-客户数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.24</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dim.dim_itfin_xwjr_cust_cust_basics_info_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，互联网金融-客户数据产出</td>
+	                                  <td width="50px">cust_id字段唯一性检测,自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.25</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dim.dim_itfin_cust_info_d</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，互联网金融-客户数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.26</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dim.dim_itfin_car_user_info_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，汽车金融-线上&线下-客户数据产出</td>
+	                                  <td width="50px">自定义SQL,表行数检测</td>
+	                                  <td width="50px">No.27</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.dim.dim_itfin_car_prod_programme_d_s</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，汽车金融-线上&线下-产品数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.28</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.ads.ads_itfin_performance_indicators_i</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，场景、房产、汽车、小微等类目业绩数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.29</td>
+	                                </tr>
+
+	        <tr>
+	                                  <td width="50px">hive.ads.ads_itfin_fcjr_performance_index_d_i</td>
+	                                  <td width="50px">正常</td>
+	                                  <td width="50px">底表</td>
+	                                  <td width="50px">高管会金融科技事业部，房产金融-客户数据产出</td>
+	                                  <td width="50px">表行数检测</td>
+	                                  <td width="50px">No.30</td>
+	                                </tr>
+
+	  </tbody>
+	</table>
+
+
+
+
+
+	    </div>
+	    </body>
+	</html>
