@@ -3,7 +3,7 @@ class MyApp:
     """
     创建一个全局的app对象，用于传递上下文
     """
-    def __init__(self,config_name):
+    def __init__(self,config_name:BaseConfig):
         """
         用于创建一个配置对象
         :param config_name:

@@ -1,11 +1,7 @@
 # {first_title}：
-**任务描述**：<font color="warning">**{desc}** </font>
-**表名**：<font color="warning">**{tbl_name}** </font>
-**状态**：**{state}**
+**任务描述**：<font color="{warn_type}">**{desc}** </font>
 # 告警内容：
-**告警描述**：<font color="warning">**{description}** </font>
+**告警描述**：<font color="{warn_type}">**{description}** </font>
 **告警时间**：{formatted_now}
-**规则类型**：{check_desc}
-**实际值**：{actual_value}
-**报警条件**：{alarm_condition}
+**监控项ID**：{apply_id}
 >本次检测执行SQL: {check_sql}

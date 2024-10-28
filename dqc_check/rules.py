@@ -1,5 +1,5 @@
 from collections import namedtuple
-from models import DqcCheckRulesApply,Session,DqcCheckRulesApplyRecords,SyntaxException,DivideZeroException,AccessDeniedException,OtherDatabaseException,NoPartitionException
+from models import DqcCheckRulesApply,Session,DqcCheckRulesApplyRecords,SyntaxException,DivideZeroException,AccessDeniedException,OtherDatabaseException,NoPartitionException,HiveConnectionException
 
 from utils import presto_execute,hive_execute,tidb_execute
 from datetime import datetime
@@ -60,6 +60,8 @@ def _optimize_sql_count(check_apply:DqcCheckRulesApply,**kwargs):
     """
     优化SQL count查询
     """
+    if kwargs['last_check_sql']:
+        return kwargs['last_check_sql']
     if kwargs['filter_condition']:
         filter_condition=' where '+kwargs['filter_condition']
     else:
@@ -69,37 +71,42 @@ def _optimize_sql_count(check_apply:DqcCheckRulesApply,**kwargs):
     else:
         sql=f"select count(*) from {kwargs['tbl_name']} {filter_condition}"
     return sql
+
 def _table_nums_check(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRecords,last_check_sql:str) ->DqcCheckRulesApplyRecords:
     logger.debug("执行表行数检测")
+    # 初始化参数
     kwargs={}
     tbl_name_list = check_apply.tbl_name.split('.')
-    filter_condition=''
-    if len(tbl_name_list)<2:
-        raise SyntaxException('表名配置异常')
+
+    if len(tbl_name_list)<2 or ('report_db_xhdc' in check_apply.tbl_name and len(tbl_name_list)<3):
+        raise SyntaxException('表名配置异常/查询tidb需配置tidb catalog')
     tbl_name = str(tbl_name_list[-2]) + '.' + str(tbl_name_list[-1])
+
+    filter_condition = ''
     if check_apply.filter_condition is not None and len(check_apply.filter_condition)>0:
         filter_condition=_convert(check_apply.filter_condition)
 
     # 判断是否是tidb数据表还是hive数据表
-    if 'report_db_xhdc' in check_apply.tbl_name:
-        if len(tbl_name_list) <3: # catalog, database, table_name
-            raise SyntaxException('查询tidb表请配置tidb catalog')
-        host= app.config.new_tidb_host if tbl_name_list[0]=='tidb_xh_159' else app.config.result_db_host
-        kwargs['host']=host
-        func=tidb_execute
-    elif 'tidb' in check_apply.tbl_name and 'report_db_xhdc' not in check_apply.tbl_name:
+    if check_apply.create_time<=datetime.strftime('2024-10-17','%Y-%m-%d'): # 2024-10-17之后，不再使用tidb或者hive进行查询，
+        if 'report_db_xhdc' in check_apply.tbl_name:
+            kwargs['host']= app.config.new_tidb_host if tbl_name_list[0]=='tidb_xh_159' else app.config.result_db_host
+            func=tidb_execute
+        elif 'tidb' in check_apply.tbl_name and 'report_db_xhdc' not in check_apply.tbl_name: #非report_db_xhdc 数据表
+            func=presto_execute
+            tbl_name=check_apply.tbl_name
+        else:
+            func=hive_execute
+    else:
         func=presto_execute
         tbl_name=check_apply.tbl_name
-    else:
-        func=hive_execute
-    if last_check_sql:
-        sql=last_check_sql # 如果上次有失败的任务，那么这次执行的SQL和本次执行的SQL保持一致
-    else:
-        sql=_optimize_sql_count(check_apply,tbl_name=tbl_name,filter_condition=filter_condition)
+
+    sql = _optimize_sql_count(check_apply, tbl_name=tbl_name, filter_condition=filter_condition,last_check_sql=last_check_sql)
+
 
 
     logger.debug(f"当前拼接的SQL为:{sql}")
     try:
+        record.check_sql=sql
         res=func(sql,**kwargs)
         table_num=float(res[0][0]) if check_apply.threshold !=0 else len(res) #
         operator=check_apply.operator
@@ -107,18 +114,15 @@ def _table_nums_check(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRe
         new_check_record=_get_result(table_num,threshold,operator,check_apply.apply_id,sql,record)
 
         logger.info(f"表行数检测结果为：{new_check_record.check_result}")
-        # check_apply.checked_times+=1
-        # check_apply.last_check_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        check_apply.checked_times+=1
+        check_apply.last_check_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        check_apply.last_check_result=new_check_record.check_result
+        check_apply.updator='system'
         #session.commit()
         return new_check_record
-    except AccessDeniedException as e:
-        raise AccessDeniedException(f"查询SQL因权限问题失败：\n SQL:{sql}\nMESSAGE:{e.args[0]}")
-    except SyntaxException as e:
-        raise SyntaxException(f"当前apply_id：{check_apply.apply_id}查询SQL因语法相关问题失败：\n SQL:{sql}\nMESSAGE:{e.args[0]}")
-    except NoPartitionException as e:
-        raise NoPartitionException(f'当前apply_id:{check_apply.apply_id}查询分区表，没有指定分区，查询失败：\n SQL:{sql}\nMESSAGE:{e.args[0]}')
-    except OtherDatabaseException as e:
-        raise OtherDatabaseException(e)
+    except (AccessDeniedException,SyntaxException,NoPartitionException,OtherDatabaseException,HiveConnectionException) as e:
+        record.check_status=3 # 3表示是查询失败，2是查询完成，1是正在执行当中
+        raise type(e)(f"SQL:{sql}\nMESSAGE:{e.args[0]}")
 
 def _clean_sql(sql):
     # 当用户传入的是自定义SQL时，用以去除掉注释和所有的换行符
@@ -160,8 +164,10 @@ def _column_unique_nums(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApply
         new_check_record = _get_result(duplicate_col_count, threshold, operator, check_apply.apply_id,sql,record)
 
         logger.info(f"字段唯一性检测结果为：{new_check_record.check_result}")
-        # check_apply.checked_times+=1
-        # check_apply.last_check_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        check_apply.checked_times+=1
+        check_apply.last_check_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        check_apply.last_check_result=new_check_record.check_result
+        check_apply.updator = 'system'
         #session.commit()
         return new_check_record
     except AccessDeniedException as e:
@@ -195,8 +201,10 @@ def _column_null_nums(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRe
         actual_value=float(res[0][0])
         new_check_record=_get_result(actual_value,check_apply.threshold,check_apply.operator,check_apply.apply_id,sql,record)
         logger.info(f"空值检测结果为：{new_check_record.check_result}")
-        # check_apply.checked_times+=1
-        # check_apply.last_check_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        check_apply.checked_times+=1
+        check_apply.last_check_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        check_apply.last_check_result=new_check_record.check_result
+        check_apply.updator = 'system'
         return new_check_record
     except SyntaxException as e:
         raise SyntaxException(f"查询SQL因语法相关问题失败：\n SQL:{sql}\n,MESSAGE:{e.args[0]}")
@@ -223,9 +231,11 @@ def _user_defined_sql(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRe
         threshold = check_apply.threshold
         new_check_record=_get_result(actual_result,threshold,operator,check_apply.apply_id,sql,record)
 
-        # check_apply.checked_times+=1
         logger.info(f"自定义SQL检测结果为：{new_check_record.check_result}")
-        # check_apply.last_check_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        check_apply.checked_times+=1
+        check_apply.last_check_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        check_apply.last_check_result=new_check_record.check_result
+        check_apply.updator = 'system'
         #session.commit()
         return new_check_record
     except DivideZeroException as e:
@@ -235,12 +245,19 @@ def _user_defined_sql(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRe
         record.check_sql=sql
         record.check_result='失败'
         record.check_status=2
+        return record
     except SyntaxException as e:
         raise SyntaxException(f"查询SQL因语法相关问题失败：\n SQL:{sql}\n,MESSAGE:{e.args[0]}")
     except AccessDeniedException as e:
         raise AccessDeniedException(f"查询SQL因权限问题失败：\n SQL:{sql}\nMESSAGE:{e.args[0]}")
     except Exception as e:
-        raise Exception(e.args[0])
+        # 如果查出来的数据不能转换成float类型，例如，查询出来的结果为None，
+        sql = _clean_sql(sql)
+        record.has_alarmed = False
+        record.check_sql = sql
+        record.check_result = '等待重试'
+        record.check_status = 2
+        return record
 
 
 def _two_tbls_data_check(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRecords)->DqcCheckRulesApplyRecords:

@@ -1,6 +1,5 @@
 """
 轮询检测单个检测项，并调用检测任务
-todo list
 未完成：
 2、apply表当中添加责任人，填写时可以通过责任人在群里进行告知
 3、如何只捕捉apply表部分字段的更新，例如只捕捉schedule_time、col_name、apply_sql等字段的变更，而不捕捉通知群等相关字段的变更
@@ -21,21 +20,21 @@ todo list
 """
 import os
 import time as t_m
-from .models import (Session, DqcCheckRulesApply, DqcCheckRulesApplyRecords,
-                    DqcCheckRulesApplyStatusControl,func,SyntaxException,DivideZeroException,AccessDeniedException,OtherDatabaseException,NoPartitionException)
-from .utils import notify_wechat_msgs,send_email
+from models import (Session, DqcCheckRulesApply, DqcCheckRulesApplyRecords,
+                    DqcCheckRulesApplyStatusControl,func,SyntaxException,DivideZeroException,AccessDeniedException,OtherDatabaseException,NoPartitionException,HiveConnectionException)
+from utils import notify_wechat_msgs,send_email
 from sqlalchemy.orm.session import Session as TypeSession
 from sqlalchemy import or_, desc,and_
 from typing import List, Optional
 from datetime import datetime, timedelta
-from .app import app
+from app import app
 import threading
 import logging
 import traceback
-from .scheduler_models.scheduler import BackgroundScheduler
-from .scheduler_models.triggers import CronTrigger,DateTrigger
+from scheduler_models.scheduler import BackgroundScheduler
+from scheduler_models.triggers import CronTrigger,DateTrigger
 from collections import defaultdict
-from .conn_properties import DevConfig,ProdConfig
+from conn_properties import DevConfig,ProdConfig
 today = datetime.today()
 logging.basicConfig(level=app.config.logger_level, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
@@ -129,10 +128,10 @@ def check_new_apply():
                 err_msg=e.args[0]
                 stack_msgs=traceback.format_exc()
                 logger.error(f"当前错误信息为：{stack_msgs}")
-                send_email('jinxin231213@credithc.com', ['jinxin231213@credithc.com'],f'监控任务配置异常：{err_msg}','监控配置任务主循环异常')
-                check_new_apply_not_exit=False
-                t_m.sleep(app.config.sleep_time)
-                raise Exception('程序异常，需要及时处理')
+                send_email(app.config.admin_email, [app.config.admin_email],f'监控任务配置异常：{err_msg}','监控配置任务主循环异常')
+                # check_new_apply_not_exit=False
+                t_m.sleep(3*app.config.sleep_time)
+                # raise Exception('程序异常，需要及时处理')
 
                 # notify_wechat_msgs(f'{basedir}/templates/messages/exception.txt',mention_list=['18810652711'],exception_args=err_msg,stack_msgs=stack_msgs) # 当前有任务报错的时候，通过邮件提醒
                 # check_new_apply_not_exit=False
@@ -166,7 +165,7 @@ def _set_crontab_trigger(apply:DqcCheckRulesApply):
             result.append(trigger)
     except TypeError:
         notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt',
-                           mention_list=[app.config.user_email_to_phone[apply.creator+ '@credithc.com']],
+                           mention_list=[app.config.user_email_to_phone[apply.creator+ app.config.email_prefix]],
                            tbl_name=apply.tbl_name,
                            err_msg=f'当前apply:{apply}调度时间设置为空或空字符串，请重新设置，已将当前任务暂停，请及时修改')
         apply.schedule_status=0
@@ -174,14 +173,14 @@ def _set_crontab_trigger(apply:DqcCheckRulesApply):
 
     except IndexError:
         notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt',
-                           mention_list=[app.config.user_email_to_phone[apply.creator + '@credithc.com']],
+                           mention_list=[app.config.user_email_to_phone[apply.creator + app.config.email_prefix]],
                            tbl_name=apply.tbl_name,
                            err_msg=f'当前apply:{apply}调度存在时间设置不符合模式: hour:minute，请重新设置，已将当前任务暂停，请及时修改')
         apply.schedule_status=0
         apply.updator = 'system'
     except Exception as e :
         notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt',
-                           mention_list=[app.config.user_email_to_phone[apply.creator+ '@credithc.com'] ],
+                           mention_list=[app.config.user_email_to_phone[apply.creator+ app.config.email_prefix] ],
                            tbl_name=apply.tbl_name,
                            err_msg=f'当前apply:{apply}调度时间设置存在异常:{e.args[0]}，请重新设置，已将当前任务暂停，请及时修改')
         apply.schedule_status=0
@@ -230,7 +229,7 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
             if record:
                 next_run_time=_get_apply_next_run_time(apply_id)
                 notify_wechat_msgs(f'{basedir}/templates/messages/config_success.txt',
-                                   mention_list=[app.config.user_email_to_phone[apply.creator+'@credithc.com']],
+                                   mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]],
                                    tbl_name=apply.tbl_name,check_content=_get_apply_desc(apply),
                                    this_time_check_result='成功' if record.check_result=='成功' else '异常',
                                    next_schedule_time=next_run_time,
@@ -239,19 +238,49 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
         elif type in ('retry','schedule'):
             # 重试任务
             if record and record.check_result == '失败':
-                if apply.fail_alarm==1:
+                if apply.tbl_name == "tidb_hjlc.report_db_xhdc.ads_wechat_report_metrics":
+                    # 企微报表类型的告警
+                    notify_wechat_msgs(f'{basedir}/templates/messages/qiwei_message.txt',
+                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
+                                       report_name=apply.desc,
+                                       formatted_now=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                       )
+                elif apply.fail_alarm==1:
                     notify_wechat_msgs(f'{basedir}/templates/messages/check_templates.txt',
-                                       mention_list=[app.config.user_email_to_phone[apply.creator+'@credithc.com']]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
+                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
                                        **_prepare_data(check_record=record, check_apply=apply, type="异常"))
-                # 添加重试任务
-                if apply.retry_times and retry_times<apply.retry_times:
-                    date_trigger=DateTrigger(run_date=datetime.now()+timedelta(minutes=int(apply.retry_interval)))
-                    sched.add_job(execute_single_apply,trigger=date_trigger,args=(apply.apply_id,'retry',record.check_sql,retry_times+1),name=str(apply)+'_retry')
-            elif record and record.check_result == '成功' and apply.fail_alarm==0:
-                notify_wechat_msgs(f'{basedir}/templates/messages/check_success.txt',
-                                   mention_list=[app.config.user_email_to_phone[apply.creator+'@credithc.com']]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
-                                   tbl_name=apply.tbl_name,
-                                   apply_desc=_get_apply_desc(apply), actual_value=record.actual_value, desc=apply.desc)
+                    # 添加重试任务
+                    if apply.retry_times and retry_times<apply.retry_times:
+                        date_trigger=DateTrigger(run_date=datetime.now()+timedelta(minutes=int(apply.retry_interval)))
+                        sched.add_job(execute_single_apply,trigger=date_trigger,args=(apply.apply_id,'retry',record.check_sql,retry_times+1),name=str(apply)+'_retry')
+            elif record and record.check_result == '等待重试':
+                if retry_times<=10:
+                    date_trigger = DateTrigger(run_date=datetime.now() + timedelta(minutes=30)) # 暂时设定为10分钟之后进行重试
+                    sched.add_job(execute_single_apply, trigger=date_trigger,args=(apply.apply_id, 'retry', record.check_sql, retry_times + 1),
+                              name=str(apply) + '_retry')
+                else:
+                    # 给出报错信息，告知数据加工异常
+                    notify_wechat_msgs(f'{basedir}/templates/messages/check_templates.txt',
+                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
+                                       **_prepare_data(check_record=record, check_apply=apply, type="任务执行异常"))
+
+
+            elif record and record.check_result == '成功':
+                if apply.fail_alarm==0:
+                    notify_wechat_msgs(f'{basedir}/templates/messages/check_success.txt',
+                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
+                                       tbl_name=apply.tbl_name,
+                                       apply_desc=_get_apply_desc(apply), actual_value=record.actual_value, desc=apply.desc)
+                elif len(all_records)>=2 and all_records[1].check_result == '失败' and apply.fail_alarm == 1:
+                    # 当前任务失败之后，成功了，需要进行恢复告警
+                    notify_wechat_msgs(f'{basedir}/templates/messages/check_templates.txt',
+                                       mention_list=[app.config.user_email_to_phone[
+                                                         apply.creator + app.config.email_prefix]] + [
+                                                        app.config.user_email_to_phone[email] for email in
+                                                        apply.notifier.split(',')],
+                                       **_prepare_data(check_record=record, check_apply=apply, type="异常恢复"))
+
+
     except (SyntaxException,AccessDeniedException,OtherDatabaseException,NoPartitionException) as e:
         # 此处默认是认为首次检测？可能是修改之后的检测，例如修改阈值，告警条件等
         apply.schedule_status=0 # 先将当前任务暂停，
@@ -259,14 +288,21 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
         err_msg=e.args[0]
         logger.error(f"错误信息为：{err_msg}")
         # 通知到企微群当中去，配置错误
-        notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt', mention_list=[app.config.user_email_to_phone[apply.creator+'@credithc.com']],tbl_name=apply.tbl_name, err_msg=err_msg)
+        notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt', mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]],tbl_name=apply.tbl_name, err_msg=err_msg)
         _clear_apply_jobs(apply_id)
+    except HiveConnectionException as e:
+        date_trigger = DateTrigger(run_date=datetime.now() + timedelta(minutes=5))  # 暂时设定为5分钟之后进行重试
+        sched.add_job(execute_single_apply, trigger=date_trigger,
+                      args=(apply.apply_id, 'retry', record.check_sql, retry_times + 1),
+                      name=str(apply) + '_retry')
+
     except Exception as e:
         apply.schedule_status=0
         apply.updator = 'system'
-        err_msg = e.args[0]
-        logger.error(f"错误信息为：{err_msg}")
-        notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt',mention_list=[app.config.user_email_to_phone[apply.creator+'@credithc.com']], tbl_name=apply.tbl_name,err_msg=err_msg)
+        err_msg = e.args
+        logger.error(f"监控项：{apply}；错误信息为：{err_msg}")
+        send_email(app.config.admin_email, [app.config.admin_email], f'监控项：{apply} /n 监控任务配置异常：{err_msg}','监控任务检测项出现错误')
+        #notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt',mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]], tbl_name=apply.tbl_name,err_msg=err_msg)
         _clear_apply_jobs(apply_id)
     finally:
         session.commit()
@@ -284,7 +320,7 @@ def _prepare_data(check_record: DqcCheckRulesApplyRecords, check_apply: DqcCheck
     """
     from datetime import datetime
     if check_apply.rule_id == 4:  # 对于自定义SQL进行单独讨论
-        check_desc = "自定义SQL"
+        check_desc = check_apply.sql_desc if check_apply.sql_desc and check_apply.sql_desc != '' else "自定义SQL"
     elif check_apply.rule_id == 1:
         check_desc = "表行数检测"
     else:
@@ -296,21 +332,24 @@ def _prepare_data(check_record: DqcCheckRulesApplyRecords, check_apply: DqcCheck
         description = f"{check_apply.tbl_name}表，{check_desc}，本次检测实际值为{actual_value}，已触发异常条件：{check_apply.operator} {threshold} 请及时关注"
         state = """<font color="warning">数据异常</font>"""
         first_title = "数据质量监控异常"
-    else:
+        warn_type='red'
+    elif type== "任务执行异常":
+        description = f"{check_apply.tbl_name}表，{check_desc}，数据质量检测任务异常：可能存在的原因为：底表无数据，请排查"
+        state = """<font color="warning">数据异常</font>"""
+        first_title = "数据质量检测任务异常"
+    elif type == "异常恢复":
         description = f"{check_apply.tbl_name}表，{check_desc}，本次检测实际值为{actual_value}，已恢复正常"
         state = """异常恢复"""
         first_title = "数据质量异常恢复"
+        warn_type='info'
     data_dict={
         'first_title':first_title,
         'desc':check_apply.desc,
-        'tbl_name':check_apply.tbl_name,
-        'state':state,
         'description':description,
         'formatted_now':formatted_now,
-        'check_desc':check_desc,
-        'actual_value':actual_value,
-        'alarm_condition':str(check_apply.operator)+' '+str(threshold),
-        'check_sql':check_record.check_sql
+        'apply_id':check_apply.apply_id,
+        'check_sql':check_record.check_sql,
+        'warn_type':warn_type
     }
     return data_dict
 
@@ -359,6 +398,7 @@ def _validate_apply(apply:DqcCheckRulesApply):
 
 
 
+
 def main():
     import sys
     # time.sleep(2222)
@@ -370,13 +410,20 @@ def main():
     session=Session()
     not_turn_off=True
     while not_turn_off:
-        status_control:DqcCheckRulesApplyStatusControl=session.query(DqcCheckRulesApplyStatusControl).filter(DqcCheckRulesApplyStatusControl.create_time>start_time).order_by(desc(DqcCheckRulesApplyStatusControl.create_time)).first()
-        logger.debug(f'current_not_turn_off:{status_control}')
-        if status_control and status_control.to_turn_off==1:
-            not_turn_off=False
-        else:
-            t_m.sleep(app.config.main_thread_sleep_time)
-        session.commit()
+        try:
+            status_control:DqcCheckRulesApplyStatusControl=session.query(DqcCheckRulesApplyStatusControl).filter(DqcCheckRulesApplyStatusControl.create_time>start_time).order_by(desc(DqcCheckRulesApplyStatusControl.create_time)).first()
+            logger.debug(f'current_not_turn_off:{status_control}')
+            if status_control and status_control.to_turn_off==1:
+                not_turn_off=False
+            else:
+                t_m.sleep(app.config.main_thread_sleep_time)
+            session.commit()
+        except Exception as e:
+            err_msg=e.args
+            send_email(app.config.admin_email, [app.config.admin_email], f'监控任务配置异常：{err_msg}','监控任务检查停止信号出现问题')
+            t_m.sleep(3*app.config.main_thread_sleep_time)
+
+
     # if app.config==ProdConfig:
     #     check_apply.join()
     # check_execute_apply.join()

@@ -62,7 +62,7 @@ class DqcCheckRulesApply(Base):
     sql_desc=Column(String(100),comment='自定义SQL描述',default='')
     notifier=Column(String(100),comment='通知人',default='')
     def __repr__(self):
-        return f'<apply_id={self.apply_id} tbl_name={self.tbl_name} col_name={self.col_name} rule_id={self.rule_id} schedule_status={self.schedule_status}>'
+        return f'<apply_id={self.apply_id} tbl_name={self.tbl_name} col_name={self.col_name} rule_id={self.rule_id} schedule_status={self.schedule_status}> schedule_time={self.schedule_time}'
 
 
 class DqcCheckRulesApplyRecords(Base):
@@ -76,7 +76,7 @@ class DqcCheckRulesApplyRecords(Base):
     check_status = Column(Integer, default=0, comment="任务检测状态,1:已调度启动，2:已执行完成")
     apply_id = Column(Integer, comment='所对应的检测任务')
     check_result = Column(String(10), comment='检测是否通过，pass表示未通过，fail表示未通过')
-    actual_value = Column(DECIMAL(10, 2), comment='检测的实际结果值')
+    actual_value = Column(DECIMAL(20, 2), comment='检测的实际结果值') # actual_value数据类型原为decimal(10,2)
     check_sql = Column(Text, comment='本次检测对应的SQL')
     has_alarmed = Column(Integer, comment='是否已告警')
     create_time = Column(DateTime, comment='创建时间', server_default=func.current_timestamp())
@@ -124,29 +124,54 @@ class SyntaxException(Exception):
     """
     SQL语法异常
     """
+    def __init__(self,msg,record):
+        super().__init__(f'查询任务因语法异常，异常详细信息为：{msg}')
+        self.record=record
+
     pass
 
 class DivideZeroException(Exception):
     """
     除0异常
     """
-    pass
+    def __init__(self,msg,record):
+        super().__init__(f'查询任务除零异常，异常详细信息为：{msg}')
+        self.record = record
 
 class AccessDeniedException(Exception):
     """
     没有权限异常
     """
-    pass
+    def __init__(self,msg,record):
+        super().__init__(f'查询任务权限异常，异常详细信息为：{msg}')
+        self.record=record
 
 class NoPartitionException(Exception):
     """
     查询Hive分区表没有指定分区
     """
+    def __init__(self,msg,record):
+
+        super().__init__(f'查询任务因没有指定分区异常，异常详细信息为：{msg}')
+        self.record=record
+
+
+class HiveConnectionException(Exception):
+    """
+    Hive连接异常
+    """
+    def __init__(self,msg,record):
+        super().__init__(f'查询任务因Hive连接异常，异常详细信息为：{msg}')
+        self.record=record
+
+
 class OtherDatabaseException(Exception):
     """
     其他数据库异常
     """
-    pass
+    def __init__(self,msg,record):
+        super().__init__(f'查询任务其他数据库相关异常，异常信息为：{msg}')
+        self.record=record
 
 # 当前线上的代码可以通过pymysql驱动跑通
 engine = create_engine(

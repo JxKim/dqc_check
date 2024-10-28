@@ -1,0 +1,4 @@
+# 企微报表推送异常：
+**报表名称**：<font color="red">**{report_name}** </font>
+# 告警内容：
+**告警时间**：{formatted_now}
