@@ -60,8 +60,6 @@ def _optimize_sql_count(check_apply:DqcCheckRulesApply,**kwargs):
     """
     优化SQL count查询
     """
-    if kwargs['last_check_sql']:
-        return kwargs['last_check_sql']
     if kwargs['filter_condition']:
         filter_condition=' where '+kwargs['filter_condition']
     else:
@@ -71,7 +69,6 @@ def _optimize_sql_count(check_apply:DqcCheckRulesApply,**kwargs):
     else:
         sql=f"select count(*) from {kwargs['tbl_name']} {filter_condition}"
     return sql
-
 def _table_nums_check(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRecords,last_check_sql:str) ->DqcCheckRulesApplyRecords:
     logger.debug("执行表行数检测")
     # 初始化参数
@@ -82,26 +79,29 @@ def _table_nums_check(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRe
         raise SyntaxException('表名配置异常/查询tidb需配置tidb catalog')
     tbl_name = str(tbl_name_list[-2]) + '.' + str(tbl_name_list[-1])
 
-    filter_condition = ''
+    filter_condition=''
+    if len(tbl_name_list)<2:
+        raise SyntaxException('表名配置异常')
+    tbl_name = str(tbl_name_list[-2]) + '.' + str(tbl_name_list[-1])
     if check_apply.filter_condition is not None and len(check_apply.filter_condition)>0:
         filter_condition=_convert(check_apply.filter_condition)
 
     # 判断是否是tidb数据表还是hive数据表
-    if check_apply.create_time<=datetime.strftime('2024-10-17','%Y-%m-%d'): # 2024-10-17之后，不再使用tidb或者hive进行查询，
-        if 'report_db_xhdc' in check_apply.tbl_name:
-            kwargs['host']= app.config.new_tidb_host if tbl_name_list[0]=='tidb_xh_159' else app.config.result_db_host
-            func=tidb_execute
-        elif 'tidb' in check_apply.tbl_name and 'report_db_xhdc' not in check_apply.tbl_name: #非report_db_xhdc 数据表
-            func=presto_execute
-            tbl_name=check_apply.tbl_name
-        else:
-            func=hive_execute
-    else:
+    if 'report_db_xhdc' in check_apply.tbl_name:
+        if len(tbl_name_list) <3: # catalog, database, table_name
+            raise SyntaxException('查询tidb表请配置tidb catalog')
+        host= app.config.new_tidb_host if tbl_name_list[0]=='tidb_xh_159' else app.config.result_db_host
+        kwargs['host']=host
+        func=tidb_execute
+    elif 'tidb' in check_apply.tbl_name and 'report_db_xhdc' not in check_apply.tbl_name:
         func=presto_execute
         tbl_name=check_apply.tbl_name
-
-    sql = _optimize_sql_count(check_apply, tbl_name=tbl_name, filter_condition=filter_condition,last_check_sql=last_check_sql)
-
+    else:
+        func=hive_execute
+    if last_check_sql:
+        sql=last_check_sql # 如果上次有失败的任务，那么这次执行的SQL和本次执行的SQL保持一致
+    else:
+        sql=_optimize_sql_count(check_apply,tbl_name=tbl_name,filter_condition=filter_condition)
 
 
     logger.debug(f"当前拼接的SQL为:{sql}")
