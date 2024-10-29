@@ -35,6 +35,7 @@ from scheduler_models.scheduler import BackgroundScheduler
 from scheduler_models.triggers import CronTrigger,DateTrigger
 from collections import defaultdict
 from conn_properties import DevConfig,ProdConfig
+from traceback import format_exc
 today = datetime.today()
 logging.basicConfig(level=app.config.logger_level, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
@@ -285,7 +286,7 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
         # 此处默认是认为首次检测？可能是修改之后的检测，例如修改阈值，告警条件等
         apply.schedule_status=0 # 先将当前任务暂停，
         apply.updator='system'
-        err_msg=e.args[0]
+        err_msg=traceback.format_exc()
         logger.error(f"错误信息为：{err_msg}")
         # 通知到企微群当中去，配置错误
         notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt', mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]],tbl_name=apply.tbl_name, err_msg=err_msg)
@@ -299,7 +300,7 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
     except Exception as e:
         apply.schedule_status=0
         apply.updator = 'system'
-        err_msg = e.args
+        err_msg = format_exc()
         logger.error(f"监控项：{apply}；错误信息为：{err_msg}")
         send_email(app.config.admin_email, [app.config.admin_email], f'监控项：{apply} /n 监控任务配置异常：{err_msg}','监控任务检测项出现错误')
         #notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt',mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]], tbl_name=apply.tbl_name,err_msg=err_msg)
