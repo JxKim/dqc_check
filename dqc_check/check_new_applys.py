@@ -239,6 +239,9 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
         elif type in ('retry','schedule'):
             # 重试任务
             if record and record.check_result == '失败':
+                if apply.retry_times and retry_times < apply.retry_times:
+                    date_trigger = DateTrigger(run_date=datetime.now() + timedelta(minutes=int(apply.retry_interval)))
+                    sched.add_job(execute_single_apply, trigger=date_trigger,args=(apply.apply_id, 'retry', record.check_sql, retry_times + 1),name=str(apply) + '_retry')
                 if apply.tbl_name == "tidb_hjlc.report_db_xhdc.ads_wechat_report_metrics":
                     # 企微报表类型的告警
                     notify_wechat_msgs(f'{basedir}/templates/messages/qiwei_message.txt',
@@ -251,9 +254,7 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
                                        mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
                                        **_prepare_data(check_record=record, check_apply=apply, type="异常"))
                     # 添加重试任务
-                    if apply.retry_times and retry_times<apply.retry_times:
-                        date_trigger=DateTrigger(run_date=datetime.now()+timedelta(minutes=int(apply.retry_interval)))
-                        sched.add_job(execute_single_apply,trigger=date_trigger,args=(apply.apply_id,'retry',record.check_sql,retry_times+1),name=str(apply)+'_retry')
+
             elif record and record.check_result == '等待重试':
                 if retry_times<=10:
                     date_trigger = DateTrigger(run_date=datetime.now() + timedelta(minutes=30)) # 暂时设定为10分钟之后进行重试
@@ -286,7 +287,7 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
         # 此处默认是认为首次检测？可能是修改之后的检测，例如修改阈值，告警条件等
         apply.schedule_status=0 # 先将当前任务暂停，
         apply.updator='system'
-        err_msg=traceback.format_exc()
+        err_msg=e.args[0]
         logger.error(f"错误信息为：{err_msg}")
         # 通知到企微群当中去，配置错误
         notify_wechat_msgs(f'{basedir}/templates/messages/config_error_template.txt', mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]],tbl_name=apply.tbl_name, err_msg=err_msg)
