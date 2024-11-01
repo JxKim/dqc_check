@@ -41,6 +41,7 @@ def presto_execute(psql: str, **kwargs) -> List[Tuple]:
                                                    'auth': HTTPBasicAuth(app.config.presto_user_name,
                                                                          app.config.presto_user_passsword)})
             curs = conn.cursor()
+            # todo 这个过程，如何设置一个超时时间，如果超时，直接失败
             curs.execute(psql)
             result = curs.fetchall()
             return result
@@ -564,6 +565,7 @@ def hive_execute(hql, query_type=1, **kwargs):
             conn = hive.connect(host=app.config.hive_host, port=app.config.hive_port, auth='LDAP',
                                 username=app.config.hive_username, password=app.config.hive_pwd,
                                 database=app.config.hive_db)
+            # todo 这里或者是presto_execute函数，是否可以设置一个超时时间，然后让任务执行一段时间之后如果获取不到数据，直接超时
             curser = conn.cursor()
             print(hql)
             curser.execute(hql)
@@ -582,7 +584,7 @@ def hive_execute(hql, query_type=1, **kwargs):
                 raise OtherDatabaseException(e.args[0].status.errorMessage)
         except Exception as e:
             if 'TSocket read 0 bytes' in e.args[0]: # 对于Hive连接异常，单独处理
-                raise HiveConnectionException(e.args[0])
+                raise HiveConnectionException(e.args[0],None)
 
             logger.warning(f'执行hive_execute出现异常:{e.args[0]}')
             if retry_time:

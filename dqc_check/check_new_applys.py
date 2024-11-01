@@ -113,7 +113,7 @@ def check_new_apply():
                             # 更新任务
                             logger.info(f"{logger_prefix}:incremental:update task {apply.apply_id}")
                             # 使用replace逻辑：先将老的task全部删除，然后再创建新的task
-                            _clear_apply_jobs(apply.apply_id)
+                            _clear_apply_jobs(apply.apply_id) # 这里需要调整一下，清理job，只能将schedule和test类型的job清理掉，而不能清理掉retry类型的job
                             res=_set_crontab_trigger(apply)
                             # 对更新任务，也需要对任务进行测试
                             if res:

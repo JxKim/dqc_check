@@ -122,7 +122,7 @@ def _table_nums_check(check_apply:DqcCheckRulesApply,record:DqcCheckRulesApplyRe
         return new_check_record
     except (AccessDeniedException,SyntaxException,NoPartitionException,OtherDatabaseException,HiveConnectionException) as e:
         record.check_status=3 # 3表示是查询失败，2是查询完成，1是正在执行当中
-        raise type(e)(f"SQL:{sql}\nMESSAGE:{e.args[0]}")
+        raise type(e)(f"SQL:{sql}\nMESSAGE:{e.args[0]}",record)
 
 def _clean_sql(sql):
     # 当用户传入的是自定义SQL时，用以去除掉注释和所有的换行符
