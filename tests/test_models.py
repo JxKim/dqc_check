@@ -10,27 +10,27 @@ class TestModel(unittest.TestCase):
         测试 异常类是否能够正常运行
         :return:
         """
-        t1=HiveConnectionException('abc')
+        t1=HiveConnectionException('abc',None)
         assert '查询任务因Hive连接异常，异常详细信息为：abc'==t1.args[0]
 
     def test_other_database_msg(self):
-        t1 = OtherDatabaseException('abc')
+        t1 = OtherDatabaseException('abc',None)
         assert '查询任务其他数据库相关异常，异常信息为：abc' == t1.args[0]
 
     def test_no_partition_msg(self):
-        t1 = NoPartitionException('abc')
+        t1 = NoPartitionException('abc',None)
         assert '查询任务因没有指定分区异常，异常详细信息为：abc' == t1.args[0]
 
     def test_access_denied(self):
-        t1 = AccessDeniedException('abc')
+        t1 = AccessDeniedException('abc',None)
         assert '查询任务权限异常，异常详细信息为：abc' == t1.args[0]
 
     def test_divide_msg(self):
-        t1 = DivideZeroException('abc')
+        t1 = DivideZeroException('abc',None)
         assert '查询任务除零异常，异常详细信息为：abc' == t1.args[0]
 
     def test_syntax_msg(self):
-        t1 = SyntaxException('abc')
+        t1 = SyntaxException('abc',None)
         assert '查询任务因语法异常，异常详细信息为：abc' == t1.args[0]
 
 

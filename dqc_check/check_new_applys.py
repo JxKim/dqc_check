@@ -245,13 +245,13 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
                 if apply.tbl_name == "tidb_hjlc.report_db_xhdc.ads_wechat_report_metrics":
                     # 企微报表类型的告警
                     notify_wechat_msgs(f'{basedir}/templates/messages/qiwei_message.txt',
-                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
+                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',') if apply.notifier] ,
                                        report_name=apply.desc,
                                        formatted_now=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                                        )
                 elif apply.fail_alarm==1:
                     notify_wechat_msgs(f'{basedir}/templates/messages/check_templates.txt',
-                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
+                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',') if apply.notifier] ,
                                        **_prepare_data(check_record=record, check_apply=apply, type="异常"))
                     # 添加重试任务
 
@@ -263,14 +263,14 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
                 else:
                     # 给出报错信息，告知数据加工异常
                     notify_wechat_msgs(f'{basedir}/templates/messages/check_templates.txt',
-                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
+                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',') if apply.notifier]  ,
                                        **_prepare_data(check_record=record, check_apply=apply, type="任务执行异常"))
 
 
             elif record and record.check_result == '成功':
                 if apply.fail_alarm==0:
                     notify_wechat_msgs(f'{basedir}/templates/messages/check_success.txt',
-                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',')],
+                                       mention_list=[app.config.user_email_to_phone[apply.creator+app.config.email_prefix]]+[app.config.user_email_to_phone[email] for email in apply.notifier.split(',') if apply.notifier] ,
                                        tbl_name=apply.tbl_name,
                                        apply_desc=_get_apply_desc(apply), actual_value=record.actual_value, desc=apply.desc)
                 elif len(all_records)>=2 and all_records[1].check_result == '失败' and apply.fail_alarm == 1:
@@ -279,7 +279,7 @@ def execute_single_apply(apply_id:int,type:str,last_check_sql=None,retry_times=0
                                        mention_list=[app.config.user_email_to_phone[
                                                          apply.creator + app.config.email_prefix]] + [
                                                         app.config.user_email_to_phone[email] for email in
-                                                        apply.notifier.split(',')],
+                                                        apply.notifier.split(',') if apply.notifier]  ,
                                        **_prepare_data(check_record=record, check_apply=apply, type="异常恢复"))
 
 

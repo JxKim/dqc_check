@@ -184,7 +184,7 @@ def _check_single_apply_loop(apply_id:int):
                 session.commit()
                 time.sleep(30)
 
-            elif latest_apply_record.check_result=="失败" and latest_apply_record.check_id==last_apply_record_id:
+            elif (latest_apply_record.check_result=="失败" or latest_apply_record.check_result=="等待重试") and latest_apply_record.check_id==last_apply_record_id:
                 # 上一批次的失败，无需更新shared_dict
                 logger.info(f"当前线程{current_thread_name}检测任务仍是上次失败任务，等待300secs")
                 session.commit()
@@ -199,7 +199,7 @@ def _check_single_apply_loop(apply_id:int):
                 last_apply_record_id=latest_apply_record.check_id
                 logger.info(f"当前线程{current_thread_name}检测任务执行再次失败，继续等待下次任务，等待300secs")
                 session.commit()
-                time.sleep(10) #
+                time.sleep(10) # todo 生产环境下，时间可以不用这么短
 
 def _get_rule_name(rule_id:int):
     if rule_id==1:
@@ -212,6 +212,10 @@ def _get_rule_name(rule_id:int):
         return '自定义SQL'
 
 def _convert_actual_value_threshold(actual_value, threshold):
+    if not actual_value or not threshold:
+        return actual_value,threshold
+    actual_value=actual_value or 0
+    threshold=threshold or 0
     if actual_value - int(actual_value) == 0:
         actual_value = int(actual_value)
     if threshold - int(threshold) == 0:
@@ -392,7 +396,7 @@ def notify_job_status(succeed_applys_list:List[check_job_status],failed_job_list
                 failed_check_items_list.append((index,_get_check_desc(apply.col_name,apply.rule_id),actual_value,f"{_convert_condition(apply.operator)}{threshold}",record.check_sql,apply.last_check_time))
 
         else: # 特殊的情况，当前数据表没有相关的检测任务
-            pass #
+            pass # todo 需要补充，部分任务可能没有对应的检测项
 
 
 
@@ -520,7 +524,7 @@ def main():
 
 if __name__ == '__main__':
     main()
-    ##
+    ## todo list
     """
     1、在单项检测任务当中，需要去定义表类型，tbl_type:结果表 底表
     2、
